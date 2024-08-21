@@ -4,6 +4,7 @@ import os
 import imutils
 import io
 from ftplib import FTP, error_perm
+from tqdm import tqdm
 
 # FTP connection data
 host = 'ftp.host.com'
@@ -19,6 +20,8 @@ personName = 'Daniel_Lozano'
 dataPath = 'C:/Users/Pc/Documents/HandgunDataset/Reconocimiento Facial/data'
 personPath = dataPath + '/' + personName
 
+total_images = 100
+
 # Connect to FTP
 try:
     ftp = FTP()
@@ -31,7 +34,7 @@ try:
         ftp.cwd(remote_directory_person)
     except error_perm as e_perm:
         if "550" in str(e_perm):
-            # El directorio no existe, intentar crearlo
+            # The directory does not exist, try to create it
             ftp.mkd(remote_directory_person)
             ftp.cwd(remote_directory_person)
         else:
@@ -40,6 +43,8 @@ try:
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     faceClassif = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     count = 0
+
+    progress_bar_creation = tqdm(total=total_images, desc='Subiendo imágenes al FTP')
 
     while True:
         ret, frame = cap.read()
@@ -66,12 +71,15 @@ try:
             ftp.storbinary(f'STOR {personName}_rostro_{count}.jpg', img_stream)
 
             count += 1
+            progress_bar_creation.update(1)
 
         cv2.imshow('frame', frame)
 
         k = cv2.waitKey(1)
-        if k == 27 or count >= 300:
+        if k == 27 or count >= total_images:
             break
+
+    progress_bar_creation.close()
 
     cap.release()
     cv2.destroyAllWindows()
